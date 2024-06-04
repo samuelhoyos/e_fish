@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "e-fish"
+version = "0.1.0"
+description = ""
+authors = ["Samuel Hoyos <samuel.hoyos@udea.edu.co>"]
+readme = "README.md"
+packages = [{include = "e_fish"}]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+pandas = "1.5"
+numba = "0.57"
+matplotlib = "3.7"
+tqdm = "^4.66.4"
+diskcache = "^5.6.3"
+scipy = "1.4.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

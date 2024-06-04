@@ -1,0 +1,7 @@
+*.txt
+*.ipynb
+cache.*
+*.zip
+*.val
+*.pyc
+*.tar.xz
