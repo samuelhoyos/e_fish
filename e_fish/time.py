@@ -1,5 +1,13 @@
 from scipy.signal import find_peaks_cwt, find_peaks, peak_widths
 import pandas as pd
+from diskcache import Cache
+import os
+from pathlib import Path
+from tqdm import tqdm
+
+cache_dir = Path(__file__).parent / "cache_time"
+os.makedirs(cache_dir, exist_ok=True)
+cache = Cache(cache_dir)
 
 
 def find_discharge(group: pd.core.groupby.generic.DataFrameGroupBy):
@@ -14,6 +22,7 @@ def find_discharge(group: pd.core.groupby.generic.DataFrameGroupBy):
     return time
 
 
+@cache.memoize()
 def get_td_df(df: pd.DataFrame):
     amplitudes = (
         df.query("time>0")
