@@ -22,6 +22,41 @@ def find_discharge(group: pd.core.groupby.generic.DataFrameGroupBy):
     return time
 
 
+def calculate_df_time(df: pd.DataFrame, trigger_up: float, trigger_down: float):
+    df.loc[
+        (((df.avg_amplitude <= trigger_down) | (df.avg_amplitude >= trigger_up)))
+        & (df.time < 1e-7),
+        "bcs_candidates",
+    ] = (trigger_down - df["avg_amplitude"]).abs()
+    df.loc[
+        ((df.avg_amplitude <= trigger_down) | (df.avg_amplitude >= trigger_up)),
+        "electrode_candidates",
+    ] = (-trigger_up + df["avg_amplitude"]).abs()
+    df_electrode = df.loc[
+        df.groupby("file_number")["electrode_candidates"]
+        .nsmallest(5)
+        .droplevel("file_number")
+        .index,
+        ["file_number", "time"],
+    ].rename(columns={"time": "time_electrode"})
+    df_bcs = df.loc[
+        df.groupby("file_number")["bcs_candidates"]
+        .nsmallest(5)
+        .droplevel("file_number")
+        .index,
+        ["file_number", "time"],
+    ].rename(columns={"time": "time_bcs"})
+    df_time = (
+        df_bcs.groupby(["file_number"])
+        .time_bcs.min()
+        .to_frame()
+        .join(df_electrode.groupby(["file_number"]).time_electrode.min().to_frame())
+    )
+    df_time["delta_t"] = (df_time.time_electrode - df_time.time_bcs) / 2
+
+    return df_time
+
+
 @cache.memoize()
 def get_td_df(df: pd.DataFrame):
     amplitudes = (
