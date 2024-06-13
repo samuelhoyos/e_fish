@@ -5,9 +5,7 @@ import os
 from pathlib import Path
 from tqdm import tqdm
 
-cache_dir = Path(__file__).parent / "cache_time"
-os.makedirs(cache_dir, exist_ok=True)
-cache = Cache(cache_dir)
+
 
 
 def find_discharge(group: pd.core.groupby.generic.DataFrameGroupBy):
@@ -22,7 +20,10 @@ def find_discharge(group: pd.core.groupby.generic.DataFrameGroupBy):
     return time
 
 
-def calculate_df_time(df: pd.DataFrame, trigger_up: float, trigger_down: float):
+
+def calculate_df_time(
+    df: pd.DataFrame, trigger_up: float, trigger_down: float
+) -> pd.DataFrame:
     df.loc[
         (((df.avg_amplitude <= trigger_down) | (df.avg_amplitude >= trigger_up)))
         & (df.time < 1e-7),
@@ -57,7 +58,19 @@ def calculate_df_time(df: pd.DataFrame, trigger_up: float, trigger_down: float):
     return df_time
 
 
-@cache.memoize()
+def shift_reflected_pulse(df: pd.DataFrame, df_time: pd.DataFrame) -> pd.DataFrame:
+    df_shifted = pd.DataFrame()
+
+    df_shifted["file_number"] = pd.Series(df_time.index).repeat(
+        df.file_number.value_counts()
+    ).values
+    df_shifted["time"] = (
+        df["time"] - 2 * df_time.delta_t.repeat(df.file_number.value_counts()).values
+    )
+    df_shifted["amplitude"] = -df["avg_amplitude"]
+
+    return df_shifted
+
 def get_td_df(df: pd.DataFrame):
     amplitudes = (
         df.query("time>0")
