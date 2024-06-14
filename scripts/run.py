@@ -1,4 +1,4 @@
-from e_fish import load, time
+from e_fish import load, time, transmitted
 from pathlib import Path
 import pandas as pd
 
@@ -13,4 +13,5 @@ if __name__ == "__main__":
     df_1 = load.avg_amplitude(df=df_1, window_size=10)
     df_time=pd.read_parquet("/home/samuel/Documents/Internship/STAGE/e_fish/PARQUET/df_time.parquet")# time.calculate_df_time(df_1,trigger_up,trigger_down)
     df_shifted=time.shift_reflected_pulse(df_1,df_time)
+    df_transmitted=pd.read_parquet("/home/samuel/Documents/Internship/STAGE/e_fish/PARQUET/df_transmitted.parquet") #transmitted.compute_pulse(df_1, df_shifted)
 

@@ -23,8 +23,6 @@ def reader(filename):
 
 
 cache.memoize()
-
-
 def create_dfs(file_list: tuple):
     file_list = [i for i in file_list if "BG" not in i]
     with concurrent.futures.ThreadPoolExecutor() as executor:

@@ -1,10 +1,5 @@
 from scipy.signal import find_peaks_cwt, find_peaks, peak_widths
 import pandas as pd
-from diskcache import Cache
-import os
-from pathlib import Path
-from tqdm import tqdm
-
 
 
 
@@ -18,7 +13,6 @@ def find_discharge(group: pd.core.groupby.generic.DataFrameGroupBy):
         .difference.idxmax()
     ]
     return time
-
 
 
 def calculate_df_time(
@@ -61,15 +55,16 @@ def calculate_df_time(
 def shift_reflected_pulse(df: pd.DataFrame, df_time: pd.DataFrame) -> pd.DataFrame:
     df_shifted = pd.DataFrame()
 
-    df_shifted["file_number"] = pd.Series(df_time.index).repeat(
-        df.file_number.value_counts()
-    ).values
+    df_shifted["file_number"] = (
+        pd.Series(df_time.index).repeat(df.file_number.value_counts()).values
+    )
     df_shifted["time"] = (
         df["time"] - 2 * df_time.delta_t.repeat(df.file_number.value_counts()).values
     )
     df_shifted["amplitude"] = -df["avg_amplitude"]
 
     return df_shifted
+
 
 def get_td_df(df: pd.DataFrame):
     amplitudes = (
@@ -82,3 +77,6 @@ def get_td_df(df: pd.DataFrame):
         amplitudes, how="inner", on=["file_number", "amplitude"]
     ).drop_duplicates(subset=["file_number", "amplitude"])
     return df
+
+
+
