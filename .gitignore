@@ -5,3 +5,5 @@ cache.*
 *.val
 *.pyc
 *.tar.xz
+*.parquet
+*.csv

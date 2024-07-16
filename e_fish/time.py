@@ -57,9 +57,14 @@ def shift_reflected_pulse(df: pd.DataFrame, df_time: pd.DataFrame) -> pd.DataFra
 
     df_shifted["file_number"] = (
         pd.Series(df_time.index).repeat(df.file_number.value_counts().sort_index()).values
+        pd.Series(df_time.index)
+        .repeat(df.file_number.value_counts().sort_index())
+        .values
     )
     df_shifted["time"] = (
         df["time"] - 2 * df_time.delta_t.repeat(df.file_number.value_counts().sort_index()).values
+        df["time"]
+        - 2 * df_time.delta_t.repeat(df.file_number.value_counts().sort_index()).values
     )
     df_shifted["amplitude"] = -df["avg_amplitude"]
 

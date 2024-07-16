@@ -51,4 +51,21 @@ def get_discharge_times(df:pd.DataFrame):
    df=df.dropna()
    df_grouped=df.groupby("file_number")["dis_candidates"].min().to_frame().reset_index()
    df=df_grouped.merge(df, on=["file_number","dis_candidates"], how="left")[['file_number','time','transmitted']]
-   return df
+   return dfdef get_discharge_times(df: pd.DataFrame, trigger: float):
+    df["threshold"] = (
+        (df.groupby("file_number").transmitted.mean().to_frame("threshold"))
+        .threshold.repeat(df.file_number.value_counts().sort_index())
+        .values
+    )
+    df.reset_index(drop=True, inplace=True)
+    df.loc[(df.threshold >= trigger) & (df.time <= 0.9e-7), "dis_candidates"] = (
+        -trigger + df["transmitted"]
+    ).abs()
+    df = df.dropna()
+    df_grouped = (
+        df.groupby("file_number")["dis_candidates"].min().to_frame().reset_index()
+    )
+    df = df_grouped.merge(df, on=["file_number", "dis_candidates"], how="left")[
+        ["file_number", "time", "transmitted"]
+    ]
+    return df
