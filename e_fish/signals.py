@@ -1,4 +1,8 @@
 import pandas as pd
+from pathlib import Path
+from sklearn.neighbors import LocalOutlierFactor
+
+
 def shift_laser_signal(df: pd.DataFrame, df_discharge: pd.DataFrame):
     df.loc[:, "time"] = (
         df["time"]
@@ -29,3 +33,14 @@ def find_pmt_max(df: pd.DataFrame):
     ]
 
     return df_max
+
+def remove_outliers(df:pd.DataFrame):
+    lof = LocalOutlierFactor(n_neighbors=100, contamination='auto')  # Adjust parameters as needed
+
+# Fit the model and predict outliers
+    outlier_labels = lof.fit_predict(df)
+
+# Filter outliers (considering non-outliers as -1 and outliers as 1)
+    df = df[outlier_labels == 1]
+    return df
+
