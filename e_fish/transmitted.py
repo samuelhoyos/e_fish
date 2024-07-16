@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 
 def compute_pulse(
@@ -31,27 +32,37 @@ def compute_pulse(
         + df_time.delta_t.repeat(
             df_transmitted.file_number.value_counts().sort_index()
         ).values
-        - df_time.time_bcs.repeat(
-            df_transmitted.file_number.value_counts().sort_index()
-        ).values
     )
     return df_transmitted
 
-def get_discharge_times(df:pd.DataFrame):
-   df["threshold"]= (df.groupby("file_number")
-    .transmitted.mean()
-    .to_frame("threshold")
-    ).threshold.repeat(
-            df.file_number.value_counts().sort_index()
-        ).values
-   df.reset_index(drop=True, inplace=True)
-   df.loc[(df.threshold >= 0.05) & (df.time <= 0.9e-7), "dis_candidates"] = (
-    -0.05 + df["transmitted"]
-).abs()
-   df=df.dropna()
-   df_grouped=df.groupby("file_number")["dis_candidates"].min().to_frame().reset_index()
-   df=df_grouped.merge(df, on=["file_number","dis_candidates"], how="left")[['file_number','time','transmitted']]
-   return dfdef get_discharge_times(df: pd.DataFrame, trigger: float):
+
+def complete_signal(df: pd.DataFrame, n_elements: int = 2002):
+    # Count occurrences of each file_number
+    grouped = df.groupby("file_number").size()
+    additional_rows = 2002 - grouped
+
+    # Create arrays for the additional rows
+    file_numbers = np.repeat(grouped.index, additional_rows)
+    min_times = df.groupby("file_number")["time"].min().reindex(file_numbers).values
+    times = (
+        min_times
+        - (np.arange(additional_rows.sum()) % additional_rows.max() + 1) * 1e-10
+    )
+    transmitted_values = np.zeros_like(times)
+
+    # Create the dataframe for the additional rows
+    df_additional = pd.DataFrame(
+        {"file_number": file_numbers, "time": times, "transmitted": transmitted_values}
+    )
+
+    # Concatenate the additional rows with the original dataframe
+    df = pd.concat([df, df_additional], ignore_index=True)
+    df.sort_values(["file_number", "time"], inplace=True)
+
+    return df
+
+
+def get_discharge_times(df: pd.DataFrame, trigger: float):
     df["threshold"] = (
         (df.groupby("file_number").transmitted.mean().to_frame("threshold"))
         .threshold.repeat(df.file_number.value_counts().sort_index())
