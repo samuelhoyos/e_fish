@@ -1,6 +1,6 @@
 from scipy.signal import find_peaks_cwt, find_peaks, peak_widths
 import pandas as pd
-
+import numpy as np
 
 
 def find_discharge(group: pd.core.groupby.generic.DataFrameGroupBy):
@@ -56,13 +56,11 @@ def shift_reflected_pulse(df: pd.DataFrame, df_time: pd.DataFrame) -> pd.DataFra
     df_shifted = pd.DataFrame()
 
     df_shifted["file_number"] = (
-        pd.Series(df_time.index).repeat(df.file_number.value_counts().sort_index()).values
         pd.Series(df_time.index)
         .repeat(df.file_number.value_counts().sort_index())
         .values
     )
     df_shifted["time"] = (
-        df["time"] - 2 * df_time.delta_t.repeat(df.file_number.value_counts().sort_index()).values
         df["time"]
         - 2 * df_time.delta_t.repeat(df.file_number.value_counts().sort_index()).values
     )
@@ -84,4 +82,34 @@ def get_td_df(df: pd.DataFrame):
     return df
 
 
+def calculate_int_interval(df: pd.DataFrame):
+    df = df[
+        df.file_number.isin(
+            df.groupby("file_number")["amplitude"]
+            .agg(maxima=(max))
+            .maxima.nlargest(20)
+            .index
+        )
+    ]
+    df = df[
+        df.amplitude
+        >= df.groupby("file_number")["amplitude"].transform(lambda x: x.max() / 2.0)
+    ]
+    fwhm = (
+        df.groupby("file_number")["time"].max()
+        - df.groupby("file_number")["time"].min()
+    ).median()
 
+    return fwhm
+
+
+def calculate_pd_pmt_diff(df_3_max: pd.DataFrame, df_2: pd.DataFrame):
+    df_2_max = df_2.loc[df_2.file_number.isin(df_3_max.file_number)]
+    df_2_max["max_amplitude"] = df_2_max.groupby("file_number")["amplitude"].transform(
+        lambda x: x.max()
+    )
+    difference = (
+        df_3_max.time.values
+        - df_2_max[df_2_max.amplitude == df_2_max.max_amplitude].time.values
+    )
+    return np.median(difference)
