@@ -1,7 +1,25 @@
 import pandas as pd
 import numpy as np
+from diskcache import Cache
+from pathlib import Path
+import os
+import math
+import joblib
+
+cache_dis = Path(__file__).parent / "cache_dis"
+os.makedirs(cache_dis, exist_ok=True)
+memory_dis = joblib.Memory(location=cache_dis, verbose=0)
+
+cache_transmitted = Path(__file__).parent / "cache_transmitted"
+os.makedirs(cache_transmitted, exist_ok=True)
+memory = joblib.Memory(location=cache_transmitted, verbose=0)
+
+cache_complete = Path(__file__).parent / "cache_complete"
+os.makedirs(cache_complete, exist_ok=True)
+memory_complete = joblib.Memory(location=cache_complete, verbose=0)
 
 
+@memory.cache
 def compute_pulse(
     df: pd.DataFrame, df_shifted: pd.DataFrame, df_time: pd.DataFrame
 ) -> pd.DataFrame:
@@ -35,11 +53,11 @@ def compute_pulse(
     )
     return df_transmitted
 
-
+@memory_complete.cache
 def complete_signal(df: pd.DataFrame, n_elements: int = 2002):
     # Count occurrences of each file_number
     grouped = df.groupby("file_number").size()
-    additional_rows = 2002 - grouped
+    additional_rows = n_elements - grouped
 
     # Create arrays for the additional rows
     file_numbers = np.repeat(grouped.index, additional_rows)
@@ -62,6 +80,8 @@ def complete_signal(df: pd.DataFrame, n_elements: int = 2002):
     return df
 
 
+
+@memory_dis.cache
 def get_discharge_times(df: pd.DataFrame, trigger: float):
     df["threshold"] = (
         (df.groupby("file_number").transmitted.mean().to_frame("threshold"))
@@ -69,7 +89,7 @@ def get_discharge_times(df: pd.DataFrame, trigger: float):
         .values
     )
     df.reset_index(drop=True, inplace=True)
-    df.loc[(df.threshold >= trigger) & (df.time <= 0.9e-7), "dis_candidates"] = (
+    df.loc[(df.threshold >= 0.05) & (df.time <= 0.95e-7), "dis_candidates"] = (
         -trigger + df["transmitted"]
     ).abs()
     df = df.dropna()
