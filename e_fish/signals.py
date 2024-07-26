@@ -32,6 +32,8 @@ def find_pmt_max(df: pd.DataFrame):
         == df_max.groupby("file_number")["time"].transform(lambda x: x.min())
     ]
 
+    print("PMT maxima found")
+
     return df_max
 
 def remove_outliers(df:pd.DataFrame):

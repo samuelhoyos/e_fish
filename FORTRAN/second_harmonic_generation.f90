@@ -31,9 +31,9 @@ program second_harmonic_generation
     character(80) filebase, filename
                                         !
 !-----------------------------INITIALIZATION----------------------------
-    inputfile='/home/samuel/Documents/Internship/STAGE/e_fish/data/2024_05_16/input_pos2_45.dat'
-    outputfile='/home/samuel/Documents/Internship/STAGE/e_fish/data/2024_05_16/output_pos2_45.dat'
-    emissionfile='AveragedEmissionSyncro.dat'
+    inputfile='/home/samuel/Documents/Internship/STAGE/e_fish/data/2024_05_16/input_pos2__45.dat'
+    outputfile='/home/samuel/Documents/Internship/STAGE/e_fish/data/2024_05_16/output_pos2_45_no_bgkd.dat'
+    emissionfile='C3--20240516_Air150mbar_45kV_BG1_inverted.txt'
 !------------------------------DEALLOCATION-----------------------------
     if (allocated(signalwbgd)) then 
         deallocate(signalwbgd)
@@ -129,8 +129,8 @@ program second_harmonic_generation
         call offset_substraction (signalwbgd, n_elements, t_bgd, signal) 
                                                                         !EXPERIMENTAL VERSION
         n_bcs4=n_bcs1     
-        print *, "n_bcs4", n_bcs4                                               !first elements in array                                                !EXPERIMENTAL VERSION
-        do while (signal(n_bcs4,2) .LT. trigger)                                                                                                    !EXPERIMENTAL VERSION
+                                                   !first elements in array                                                !EXPERIMENTAL VERSION
+        do while (signal(n_bcs4,2) .LT. trigger)                                                                                                 !EXPERIMENTAL VERSION
             n_bcs4=n_bcs4+1  
             !print *, "n", n_bcs4                                                                                                                     !EXPERIMENTAL VERSION
         enddo    
@@ -147,19 +147,19 @@ program second_harmonic_generation
     !TO ADD TWO FILES - AVERAGED EMISSION AND CORRESPONDING BCS2 TO PERFORM A SYNCRONIZATION
     !means define the time shift for emission waveform so that I_tr for both latest plasma mode case and emission case are triggered at the same time
     !after that one should after each read of new data subtract the averaged emission waveform
-    !open(20181123, file=emissionfile)
-    !emissionpath='C:\Users\orel\Dropbox\SHG\Console1\'
-    !call file_reading (emissionpath, emissionfile, 1, emission, n_elements)
+    open(202405163, file=emissionfile)
+    emissionpath='/home/samuel/Documents/Internship/STAGE/e_fish/data/2024_05_16/pos2_45kV/'
+    call file_reading (emissionpath, emissionfile, header, emission, n_elements)
     
     if (allocated(emission)) then 
         deallocate(emission)
     endif
     allocate(emission(n_elements,2))
     
-    do i=1, n_elements
-        emission(i,1)=signalwbgd(i,1)
-        emission(i,2)=0.0
-    enddo  
+    ! do i=1, n_elements
+    !     emission(i,1)=signalwbgd(i,1)
+    !     emission(i,2)=0.0
+    ! enddo  
 !------------------------SINGLE SHG CALCULATIONS------------------------
     do i=osc_a, osc_z
         print *, 'osc#=', i
@@ -190,9 +190,9 @@ program second_harmonic_generation
             pmt_noise_maxima(i)=signal(t_pmt_noise_max,2)
             pmt_integral(i)=integral
            
-            if (pmt_maxima(i) .GT. 0.14) then                                                                                                       !SATURATED value - to define for each experiment! and indicate here a bit less, because it may flucrtuate a bit (we usually have around 0.15)
-                call wigwam_correction(signal, n_elements, t_pmt_max, pmt_maxima(i), pmt_integral(i))
-            endif
+            ! if (pmt_maxima(i) .GT. 0.14) then                                                                                                       !SATURATED value - to define for each experiment! and indicate here a bit less, because it may flucrtuate a bit (we usually have around 0.15)
+            !     call wigwam_correction(signal, n_elements, t_pmt_max, pmt_maxima(i), pmt_integral(i))
+            ! endif
             
             if (pmt_maxima(i) .GT. pmt_noise_maxima(i)) then                                                                                        !EXPERIMENTAL VERSION: NOISE SEARCH
                 if ((pmt_maxima(i)>0.0) .AND. (pmt_integral(i)>0.0)) then                                                                           !pmt is >0
@@ -246,6 +246,6 @@ program second_harmonic_generation
     deallocate(pmt_maxima)
     deallocate(pmt_noise_maxima)
     deallocate(emission)
-    close(20240516)
+    close(202405163)
     
 end program second_harmonic_generation
