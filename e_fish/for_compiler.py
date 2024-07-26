@@ -5,9 +5,11 @@ import pandas as pd
 import re
 from sklearn.neighbors import LocalOutlierFactor
 from . import signals
+from concurrent.futures import ProcessPoolExecutor
+
 
 folder = Path(__file__).parent.parent
-input_folder = Path(__file__).parent.parent / "data"
+input_folder = Path(__file__).parent.parent /Path("data")
 module = "shg.f90"
 code = "second_harmonic_generation.f90"
 
@@ -17,12 +19,12 @@ def write_input(
     last_osc: int,
     delta_t: float,
     t_diff: float,
-    input_path: str = "2024_05_16/input_pos2_45.dat",
-    pos_path: str = "2024_05_16/pos2_45kV",
-    bcs1_gen_name: str = "C11--20240516_Air150mbar_45kV--",
-    bcs2_gen_name: str = "C44--20240516_Air150mbar_45kV--",
-    pd_gen_name: str = "C2--20240516_Air150mbar_45kV--",
-    pmt_gen_name: str = "C33--20240516_Air150mbar_45kV--",
+    input_path: str ,
+    pos_path: str,
+    bcs1_gen_name: str,
+    bcs2_gen_name: str,
+    pd_gen_name: str,
+    pmt_gen_name: str,
     fmt: str = ".txt",
     skip: int = 5,
     n_elements: int = 2002,
@@ -40,6 +42,7 @@ def write_input(
         file.write(str(last_osc) + "\n")
         file.write(str(skip) + "\n")
         file.write(str(n_elements) + "\n")
+        
         file.write(str(t_bgd) + "\n")
         file.write(str(delta_t) + "\n")
         file.write(str(t_diff) + "\n")
@@ -55,7 +58,7 @@ def compile_shg(path_folder: str):
 
     try:
         result = subprocess.run(
-            execute_command, shell=True, check=True, capture_output=True, text=True
+            execute_command, shell=True, check=True
         )
         print("Standard Output:", result.stdout)
     except subprocess.CalledProcessError as e:
@@ -66,76 +69,212 @@ def compile_shg(path_folder: str):
         result = subprocess.run(
             execute_command, shell=True, check=True, capture_output=True, text=True
         )
+    return print("Standard Output:", result.stdout)
 
-    # Print the output of the Fortran program
 
 
-def add_leading_zeros(
-    channel: str,
-    pos_path: str = "2024_05_16/pos2_45kV",
-    total_length=5,
-    fmt: str = ".txt",
-):
-    # Change to the target directory
-    os.chdir(str(input_folder / Path(pos_path)))
 
-    # Regular expression to match the filenames and capture the numeric part
-    pattern = re.compile(rf"({channel}--20240516_Air150mbar_45kV--)(\d+)(\ {fmt})")
+def add_leading_zeros(channel: str, pos_path: str, total_length=5, fmt: str = ".txt"):
+    date_part = pos_path.split('/')[0].replace('_', '')
+    kv_part = pos_path.split('/')[1].split('_')[1].split('k')[0]
+    pattern = re.compile(rf"({channel}--{date_part}_Air150mbar_{kv_part}kV--)(\d+)({fmt})")
+    
+    dir_path = input_folder / Path(pos_path)
+    
+    if not dir_path.is_dir():
+        print(f"Directory does not exist: {dir_path}")
+        return
+    
+    print(f"Processing directory: {dir_path}")
 
-    # List all files in the directory
-    for filename in os.listdir("."):
+    for filename in os.listdir(dir_path):
         match = pattern.match(filename)
         if match:
             prefix = match.group(1)
             number = match.group(2)
             suffix = match.group(3)
-
-            # Determine the number of leading zeros needed
             zero_padded_number = number.zfill(total_length)
-
-            # Reconstruct the filename with leading zeros
             new_filename = f"{prefix}{zero_padded_number}{suffix}"
+            os.rename(dir_path / filename, dir_path / new_filename)
+            print(f'Renamed: {filename} -> {new_filename}')
+    
+    print(f"Leading zeros were added to files in {dir_path}")
 
-            # Rename the file
-            os.rename(filename, new_filename)
-            # print(f'Renamed: {filename} -> {new_filename}')
-    return print("Leading zeros were added")
+def write_single_file(file_info):
+    file_number, group, base_path, static_part1, static_part2, header_text = file_info
+    file_path = base_path / f"{static_part1}{static_part2}{file_number}.txt"
 
+    file_path.parent.mkdir(parents=True, exist_ok=True)  # Ensure directory exists
 
-def write_files(
-    df: pd.DataFrame,
-    channel: str,
-    pos_path: str = "2024_05_16/pos2_45kV",
-    fmt: str = ".txt",
-):
-    header_text = "LECROYWR625Zi;61392;Waveform \n Segments;1;SegmentSize;2002 \n Segment;TrigTime;TimeSinceSegment1 \n #1date;0"
+    with open(file_path, "w") as f:
+        f.write(header_text + "\n")
 
-    for file_number, group in df.groupby("file_number"):
-        file_path = f"{str(input_folder)}/{pos_path}/{channel}--20240516_Air150mbar_45kV--{file_number}.txt"
+    if group.empty:
+        print(f"Warning: Data for file {file_path} is empty.")
+    else:
+        group[["time", "amplitude"]].to_csv(file_path, sep=";", index=False, mode="a")
 
-        # Open the file in write mode and write the header text
-        with open(file_path, "w") as f:
-            f.write(header_text + "\n")
+def write_files(df: pd.DataFrame, channel: str, pos_path: str, fmt: str = ".txt"):
+    header_text = "LECROYWR625Zi;61392;Waveform\nSegments;1;SegmentSize;2002\nSegment;TrigTime;TimeSinceSegment1\n#1date;0"
 
-        # Append the DataFrame content to the file
-        group[["time", "amplitude"]].reset_index(drop=True).to_csv(
-            file_path, sep=";", index=False, mode="a"  # Append mode
-        )
+    pos_path_parts = pos_path.split('/')
+    base_path = Path(input_folder) / Path(pos_path)
+    static_part1 = f"{channel}--{int(''.join(pos_path_parts[0].split('_')))}_Air150mbar_"
+    static_part2 = f"{int(pos_path_parts[1].split('_')[1].split('k')[0])}kV--"
+
+    # Prepare the data for multiprocessing
+    file_groups = [(file_number, group, base_path, static_part1, static_part2, header_text)
+                   for file_number, group in df.groupby("file_number")]
+
+    with ProcessPoolExecutor() as executor:
+        executor.map(write_single_file, file_groups)
+
     add_leading_zeros(pos_path=pos_path, channel=channel, fmt=fmt)
-    return print(
-        f"Files written for channel {channel} at {str(input_folder/Path(pos_path))}"
-    )
+    print(f"Files written for channel {channel} at {base_path}")
+
+
+# def write_single_file(file_number_group, base_path, static_part1, static_part2, header_text):
+#     file_number, group = file_number_group
+#     file_path = base_path / f"{static_part1}{static_part2}{file_number}.txt"
+#     #print(f"Writing to: {file_path}")
+
+#     file_path.parent.mkdir(parents=True, exist_ok=True)  # Ensure directory exists
+    
+#     with open(file_path, "w") as f:
+#         f.write(header_text + "\n")
+    
+#     if group.empty:
+#         print(f"Warning: Data for file {file_path} is empty.")
+#     else:
+#         group[["time", "amplitude"]].to_csv(file_path, sep=";", index=False, mode="a")
+#         #print(f"File written: {file_path} with {len(group)} records.")
+
+# def write_files(df: pd.DataFrame, channel: str, pos_path: str, fmt: str = ".txt"):
+#     header_text = "LECROYWR625Zi;61392;Waveform\nSegments;1;SegmentSize;2002\nSegment;TrigTime;TimeSinceSegment1\n#1date;0"
+    
+#     pos_path_parts = pos_path.split('/')
+#     base_path = input_folder / Path(pos_path)
+#     static_part1 = f"{channel}--{int(''.join(pos_path_parts[0].split('_')))}_Air150mbar_"
+#     static_part2 = f"{int(pos_path_parts[1].split('_')[1].split('k')[0])}kV--"
+    
+#     file_groups = list(df.groupby("file_number"))
+
+#     with ProcessPoolExecutor() as executor:
+#         futures = [executor.submit(write_single_file, file_group, base_path, static_part1, static_part2, header_text) for file_group in file_groups]
+#         for future in futures:
+#             future.result()  # Ensure any raised exceptions are propagated
+    
+#     add_leading_zeros(pos_path=pos_path, channel=channel, fmt=fmt)
+#     print(f"Files written for channel {channel} at {base_path}")
+
+# def add_leading_zeros(channel: str, pos_path: str, total_length=5, fmt: str = ".txt"):
+#     # Extract the parts from pos_path
+#     date_part = pos_path.split('/')[0].replace('_', '')
+#     kv_part = pos_path.split('/')[1].split('_')[1].split('k')[0]
+    
+#     # Construct the regular expression pattern to match filenames
+#     pattern = re.compile(rf"({channel}--{date_part}_Air150mbar_{kv_part}kV--)(\d+)({fmt})")
+    
+#     # Print pattern for debugging
+  
+#     # List all files in the directory
+#     dir_path = input_folder / Path(pos_path)
+  
+    
+#     # Ensure the directory exists
+#     if not dir_path.is_dir():
+#         print(f"Directory does not exist: {dir_path}")
+#         return
+    
+#     for filename in os.listdir(dir_path):
+#         match = pattern.match(filename)
+#         if match:
+#             prefix = match.group(1)
+#             number = match.group(2)
+#             suffix = match.group(3)
+
+            
+#             # Determine the number of leading zeros needed
+#             zero_padded_number = number.zfill(total_length)
+
+#             # Reconstruct the filename with leading zeros
+#             new_filename = f"{prefix}{zero_padded_number}{suffix}"
+
+#             # Rename the file
+#             os.rename(dir_path / filename, dir_path / new_filename)
+#             print(f'Renamed: {filename} -> {new_filename}')
+        
+
+#     return print(f"Leading zeros were added to files in {dir_path}")
+
+
+
+# def write_files(
+#     df: pd.DataFrame,
+#     channel: str,
+#     pos_path: str,
+#     fmt: str = ".txt",
+# ):
+#     header_text = "LECROYWR625Zi;61392;Waveform \n Segments;1;SegmentSize;2002 \n Segment;TrigTime;TimeSinceSegment1 \n #1date;0"
+
+#     for file_number, group in df.groupby("file_number"):
+#         file_path = f"{str(input_folder)}/{pos_path}/{channel}--{int(''.join(pos_path.split('/')[0].split('_')))}_Air150mbar_{int(pos_path.split('/')[1].split('_')[1].split('k')[0])}kV--{file_number}.txt"
+
+
+#         # Open the file in write mode and write the header text
+#         with open(file_path, "w") as f:
+#             f.write(header_text + "\n")
+
+#         # Append the DataFrame content to the file
+#         group[["time", "amplitude"]].reset_index(drop=True).to_csv(
+#             file_path, sep=";", index=False, mode="a"  # Append mode
+#         )
+#     add_leading_zeros(pos_path=pos_path, channel=channel, fmt=fmt)
+#     return print(
+#         f"Files written for channel {channel} at {str(input_folder/Path(pos_path))}"
+#     )
+# def write_files(
+#     df: pd.DataFrame,
+#     channel: str,
+#     pos_path: str,
+#     fmt: str = ".txt",
+# ):
+#     #input_folder = Path("your_input_folder_path")  # Define your input folder path here
+#     header_text = "LECROYWR625Zi;61392;Waveform\nSegments;1;SegmentSize;2002\nSegment;TrigTime;TimeSinceSegment1\n#1date;0"
+    
+#     pos_path_parts = pos_path.split('/')
+#     base_path = f"{input_folder}/{pos_path}"
+#     static_part1 = f"{channel}--{int(''.join(pos_path_parts[0].split('_')))}_Air150mbar_"
+#     static_part2 = f"{int(pos_path_parts[1].split('_')[1].split('k')[0])}kV--"
+
+#     def write_single_file(file_number_group):
+#         file_number, group = file_number_group
+#         file_path = f"{base_path}/{static_part1}{static_part2}{file_number}.txt"
+#         file_path.parent.mkdir(parents=True, exist_ok=True) 
+#         with open(file_path, "w") as f:
+#             f.write(header_text + "\n")
+#         group[["time", "amplitude"]].to_csv(
+#             file_path, sep=";", index=False, mode="a"
+#         )
+    
+#     # Use a ProcessPoolExecutor to parallelize file writing
+#     with ProcessPoolExecutor() as executor:
+#         executor.map(write_single_file, df.groupby("file_number"))
+
+#     add_leading_zeros(pos_path=pos_path, channel=channel, fmt=fmt)
+#     print(f"Files written for channel {channel} at {str(input_folder / Path(pos_path))}")
+
 
 
 def write_shg_for_ssc(path_to_read: str, path_to_write: str):
-    path_to_read_file = Path(__file__).parent.parent / path_to_read
-    path_to_write_file = Path(__file__).parent.parent / path_to_write
+    path_to_read_file = input_folder/ path_to_read
+    path_to_write_file = input_folder / path_to_write
 
-    df = pd.read_csv(f"{str(path_to_read)}", delimiter=";")
+    df = pd.read_csv(f"{str(path_to_read_file)}", delimiter=";")
     df = df[["timens", "shg_single"]].sort_values("timens")
     df.drop(df.index[-1], inplace=True)
     df=signals.remove_outliers(df)
-    df.to_csv(f"{str(path_to_write)}", sep=";", index=False)
+    df.to_csv(f"{str(path_to_write_file)}", sep=";", index=False)
 
     return print("E-FISH signal written for statistics")
 
@@ -143,7 +282,7 @@ def write_shg_for_ssc(path_to_read: str, path_to_write: str):
 def write_input_for_ssc(
     path: str, n_elements: int, header: int = 1, bin_width: float = 0.2, path_to_data:str="e_fish_signal.dat"
 ):
-    path_to_input = Path(__file__).parent.parent / path
+    path_to_input = input_folder / path
 
     with open(str(path_to_input), "w") as file:
         file.write(str(Path(path_to_input).parent) + "/" "\n")
