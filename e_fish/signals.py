@@ -4,6 +4,9 @@ from sklearn.neighbors import LocalOutlierFactor
 
 
 def shift_laser_signal(df: pd.DataFrame, df_discharge: pd.DataFrame):
+    print("Tamaño de df_discharge.time:", df_discharge.time.shape)
+    print("Tamaño de df.file_number.value_counts().sort_index():", df.file_number.value_counts().sort_index().shape)
+    print("Tamaño esperado después de repetir:", df_discharge.time.repeat(df.file_number.value_counts().sort_index()).shape)
     df.loc[:, "time"] = (
         df["time"]
         - df_discharge.time.repeat(df.file_number.value_counts().sort_index()).values

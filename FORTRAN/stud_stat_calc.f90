@@ -19,9 +19,9 @@ program stud_stat_calc
     character(80) filename                                                  !
     integer i, j                                                            !counters
 !-----------------------------INITIALIZATION----------------------------
-    inputfile='/home/samuel/Documents/Internship/STAGE/e_fish/data/2024_05_16/input_pos2_45_SSC.dat'                                                   !directs to 'shg_singleshot.dat'with all single shot data for selected case
+    inputfile="C:\Users\samue\OneDrive\Documentos\2024\LPP\M1_internship\data\2024_05_16\input_pos2_27_SSC.dat"                                                   !directs to 'shg_singleshot.dat'with all single shot data for selected case
     studentfile='t_student.dat'                                             !gives the student coefficients for a chosen probability (usually requested standart is 0.95=95%)
-    outputfile='/home/samuel/Documents/Internship/STAGE/e_fish/data/2024_05_16/output_pos2_45_no_bkgd_SSC.dat'
+    outputfile="C:\Users\samue\OneDrive\Documentos\2024\LPP\M1_internship\data\2024_05_16\output_pos2_27_SSC.dat"
 !------------------------------DEALLOCATION-----------------------------
     if (allocated(shg_singleshot)) then
         deallocate(shg_singleshot)

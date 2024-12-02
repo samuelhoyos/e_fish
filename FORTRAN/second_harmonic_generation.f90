@@ -11,8 +11,9 @@ program second_harmonic_generation
     integer n_min, n_max                                                    !#s to scan PD signal: physical condition = to be between incedent and transmitted pulses
     real*16 t_bgd, delta_t, pmt_delay                                       ![s], first XX seconds of signal where there's only background, FWHM of photodiod and photomultiplier pulse, integration will pas on (t_max-delta_t;t_max+delta_t); time of delay btw pd and pmt
     real*16 timestep                                                        !timestep - difference between two closest input T points
-    real*16 trigger                                                         ![a.u.], trigger level of BCS1 and BCS2 signals
-    character(100) inputfile, outputfile, emissionfile, filepath, emissionpath             !filename of file with data input and output information, filepath for data and emission's file name (if needed), should be syncronised with latest plasma mode manually
+    real*16 trigger                          
+    character(len=256) :: part1, part2, part3, part4                               ![a.u.], trigger level of BCS1 and BCS2 signals
+    character(256) inputfile, outputfile, emissionfile, filepath, emissionpath             !filename of file with data input and output information, filepath for data and emission's file name (if needed), should be syncronised with latest plasma mode manually
 !---------------------------------OUTPUT--------------------------------
     real*16, allocatable                    ::  signalwbgd(:,:)             !
     real*16, allocatable                    ::  signal(:,:)                 !
@@ -31,9 +32,18 @@ program second_harmonic_generation
     character(80) filebase, filename
                                         !
 !-----------------------------INITIALIZATION----------------------------
-    inputfile='/home/samuel/Documents/Internship/STAGE/e_fish/data/2024_05_16/input_pos2__45.dat'
-    outputfile='/home/samuel/Documents/Internship/STAGE/e_fish/data/2024_05_16/output_pos2_45_no_bgkd.dat'
-    emissionfile='C3--20240516_Air150mbar_45kV_BG1_inverted.txt'
+
+    part1 = trim("C:/Users/samue/OneDrive/Documentos/2024/LPP/M1_internship/")
+    part2 = trim("data/2024_05_16/input_pos2_27.dat")
+    inputfile = trim(part1)// trim(part2)
+
+    part3 ="C:/Users/samue/OneDrive/Documentos/2024/LPP/M1_internship/"
+    part4 = "data/2024_05_16/output_pos2_27.dat"
+    outputfile = trim(part3)// trim(part4)
+    print *, "Input file: ", inputfile
+    print *, "Output file: ", outputfile
+   
+    !emissionfile='C3--20240516_Air150mbar_45kV_BG1_inverted.txt'
 !------------------------------DEALLOCATION-----------------------------
     if (allocated(signalwbgd)) then 
         deallocate(signalwbgd)
@@ -147,19 +157,19 @@ program second_harmonic_generation
     !TO ADD TWO FILES - AVERAGED EMISSION AND CORRESPONDING BCS2 TO PERFORM A SYNCRONIZATION
     !means define the time shift for emission waveform so that I_tr for both latest plasma mode case and emission case are triggered at the same time
     !after that one should after each read of new data subtract the averaged emission waveform
-    open(202405163, file=emissionfile)
-    emissionpath='/home/samuel/Documents/Internship/STAGE/e_fish/data/2024_05_16/pos2_45kV/'
-    call file_reading (emissionpath, emissionfile, header, emission, n_elements)
+    !open(202405163, file=emissionfile)
+    !emissionpath='/home/samuel/Documents/Internship/STAGE/e_fish/data/2024_05_16/pos2_45kV/'
+    !call file_reading (emissionpath, emissionfile, header, emission, n_elements)
     
     if (allocated(emission)) then 
-        deallocate(emission)
+       deallocate(emission)
     endif
     allocate(emission(n_elements,2))
     
-    ! do i=1, n_elements
-    !     emission(i,1)=signalwbgd(i,1)
-    !     emission(i,2)=0.0
-    ! enddo  
+    do i=1, n_elements
+         emission(i,1)=signalwbgd(i,1)
+         emission(i,2)=0.0
+    enddo  
 !------------------------SINGLE SHG CALCULATIONS------------------------
     do i=osc_a, osc_z
         print *, 'osc#=', i

@@ -19,7 +19,7 @@ os.makedirs(cache_complete, exist_ok=True)
 memory_complete = joblib.Memory(location=cache_complete, verbose=0)
 
 
-@memory.cache
+#@memory.cache
 def compute_pulse(
     df: pd.DataFrame, df_shifted: pd.DataFrame, df_time: pd.DataFrame
 ) -> pd.DataFrame:
@@ -53,7 +53,7 @@ def compute_pulse(
     )
     return df_transmitted
 
-@memory_complete.cache
+#@memory_complete.cache
 def complete_signal(df: pd.DataFrame, n_elements: int = 2002):
     # Count occurrences of each file_number
     grouped = df.groupby("file_number").size()
@@ -81,7 +81,7 @@ def complete_signal(df: pd.DataFrame, n_elements: int = 2002):
 
 
 
-@memory_dis.cache
+#@memory_dis.cache
 def get_discharge_times(df: pd.DataFrame, trigger: float):
     df["threshold"] = (
         (df.groupby("file_number").transmitted.mean().to_frame("threshold"))
@@ -99,4 +99,6 @@ def get_discharge_times(df: pd.DataFrame, trigger: float):
     df = df_grouped.merge(df, on=["file_number", "dis_candidates"], how="left")[
         ["file_number", "time", "transmitted"]
     ]
+    df = df.drop_duplicates(subset="file_number")
+
     return df

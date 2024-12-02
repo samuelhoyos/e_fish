@@ -35,7 +35,7 @@ subroutine file_reading (filepath, filename, header, signalwbgd, n_elements)
 ! returns measured signalwbgd of n_elements points
 !---------------------------------INPUT---------------------------------
     character(80), intent(in)   ::  filename                    !contains #=header supportive lines and signalwbgd
-    character(80), intent(in)   ::  filepath                    !line of file with path information
+    character(111), intent(in)   ::  filepath                    !line of file with path information
     integer, intent(in)         ::  header                      !number of lines with non-digital data
 !---------------------------------OUTPUT--------------------------------
     real*16, allocatable        ::  signalwbgd(:,:)             !array: 1st column for time, 2nd for data values
@@ -44,8 +44,9 @@ subroutine file_reading (filepath, filename, header, signalwbgd, n_elements)
     integer i                                                   !counter
     
     n_elements=0
-    open(1, file=trim(filepath)//trim(filename))
     !print *, "file_for_reading:", trim(filepath)//trim(filename)
+    open(1, file=trim(filepath)//trim(filename))
+    
     do while (.true.)
         read(unit=1, fmt="(A)", iostat=io_status) line
         if (io_status /= 0) exit

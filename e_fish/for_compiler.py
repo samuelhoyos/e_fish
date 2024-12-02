@@ -9,7 +9,7 @@ from concurrent.futures import ProcessPoolExecutor
 
 
 folder = Path(__file__).parent.parent
-input_folder = Path(__file__).parent.parent /Path("data")
+input_folder = Path(__file__).parent.parent.parent /Path("data")
 module = "shg.f90"
 code = "second_harmonic_generation.f90"
 
@@ -32,7 +32,7 @@ def write_input(
     trigger: float = 0.15,
 ):
     with open(str(input_folder / Path(input_path)), "w") as file:
-        file.write(str(input_folder / Path(pos_path)) + "/" + "\n")
+        file.write(str(input_folder / Path(pos_path)) + "\\" + "\n")
         file.write(bcs1_gen_name + "\n")
         file.write(bcs2_gen_name + "\n")
         file.write(pd_gen_name + "\n")
@@ -51,10 +51,10 @@ def write_input(
 
 
 def compile_shg(path_folder: str):
-    compile_command = f"gfortran {str(folder/Path(path_folder))}/{module} {str(folder/Path(path_folder))}/{code} -o {str(folder/Path(path_folder))}/second_harmonic_generation"
+    compile_command = f"gfortran {str(folder/Path(path_folder))}\\{module} {str(folder/Path(path_folder))}\\{code} -o {str(folder/Path(path_folder))}\\second_harmonic_generation"
     subprocess.run(compile_command, shell=True, check=True)
     # Execute the compiled Fortran program
-    execute_command = f"{str(folder/Path(path_folder))}/second_harmonic_generation"
+    execute_command = f"{str(folder/Path(path_folder))}\\second_harmonic_generation"
 
     try:
         result = subprocess.run(
@@ -74,9 +74,35 @@ def compile_shg(path_folder: str):
 
 
 
+# def add_leading_zeros(channel: str, pos_path: str, total_length=5, fmt: str = ".txt"):
+#     date_part = pos_path.split('/')[0].replace('_', '')
+#     kv_part = pos_path.split('/')[1].split('_')[1].split('k')[0]
+#     pattern = re.compile(rf"({channel}--{date_part}_Air150mbar_{kv_part}kV--)(\d+)({fmt})")
+    
+#     dir_path = input_folder / Path(pos_path)
+    
+#     if not dir_path.is_dir():
+#         print(f"Directory does not exist: {dir_path}")
+#         return
+    
+#     print(f"Processing directory: {dir_path}")
+
+#     for filename in os.listdir(dir_path):
+#         match = pattern.match(filename)
+#         if match:
+#             prefix = match.group(1)
+#             number = match.group(2)
+#             suffix = match.group(3)
+#             zero_padded_number = number.zfill(total_length)
+#             new_filename = f"{prefix}{zero_padded_number}{suffix}"
+#             os.rename(dir_path / filename, dir_path / new_filename)
+#             print(f'Renamed: {filename} -> {new_filename}')
+    
+#     print(f"Leading zeros were added to files in {dir_path}")
+
 def add_leading_zeros(channel: str, pos_path: str, total_length=5, fmt: str = ".txt"):
-    date_part = pos_path.split('/')[0].replace('_', '')
-    kv_part = pos_path.split('/')[1].split('_')[1].split('k')[0]
+    date_part = pos_path.split('\\')[0].replace('_', '')
+    kv_part = pos_path.split('\\')[1].split('_')[1].split('k')[0]
     pattern = re.compile(rf"({channel}--{date_part}_Air150mbar_{kv_part}kV--)(\d+)({fmt})")
     
     dir_path = input_folder / Path(pos_path)
@@ -95,8 +121,14 @@ def add_leading_zeros(channel: str, pos_path: str, total_length=5, fmt: str = ".
             suffix = match.group(3)
             zero_padded_number = number.zfill(total_length)
             new_filename = f"{prefix}{zero_padded_number}{suffix}"
-            os.rename(dir_path / filename, dir_path / new_filename)
-            print(f'Renamed: {filename} -> {new_filename}')
+            new_filepath = dir_path / new_filename
+
+            # Check if the new filename already exists
+            if new_filepath.exists():
+                print(f"File {new_filename} already exists. Skipping renaming.")
+            else:
+                os.rename(dir_path / filename, new_filepath)
+                print(f'Renamed: {filename} -> {new_filename}')
     
     print(f"Leading zeros were added to files in {dir_path}")
 
@@ -117,7 +149,7 @@ def write_single_file(file_info):
 def write_files(df: pd.DataFrame, channel: str, pos_path: str, fmt: str = ".txt"):
     header_text = "LECROYWR625Zi;61392;Waveform\nSegments;1;SegmentSize;2002\nSegment;TrigTime;TimeSinceSegment1\n#1date;0"
 
-    pos_path_parts = pos_path.split('/')
+    pos_path_parts = pos_path.split('\\')
     base_path = Path(input_folder) / Path(pos_path)
     static_part1 = f"{channel}--{int(''.join(pos_path_parts[0].split('_')))}_Air150mbar_"
     static_part2 = f"{int(pos_path_parts[1].split('_')[1].split('k')[0])}kV--"
@@ -132,6 +164,94 @@ def write_files(df: pd.DataFrame, channel: str, pos_path: str, fmt: str = ".txt"
     add_leading_zeros(pos_path=pos_path, channel=channel, fmt=fmt)
     print(f"Files written for channel {channel} at {base_path}")
 
+# def write_files(df: pd.DataFrame, channel: str, pos_path: str, fmt: str = ".txt"):
+#     """
+#     Writes files based on the provided DataFrame and parameters.
+
+#     Parameters:
+#         df (pd.DataFrame): DataFrame containing the data to be written.
+#         channel (str): Channel name for the output files.
+#         pos_path (str): Path where the files will be saved.
+#         fmt (str): File format (default: ".txt").
+#     """
+#     header_text = "LECROYWR625Zi;61392;Waveform\nSegments;1;SegmentSize;2002\nSegment;TrigTime;TimeSinceSegment1\n#1date;0"
+
+#     # Ensure the output path exists
+    
+
+#     pos_path_parts = pos_path.split('/')
+#     base_path = Path(input_folder) / Path(pos_path)
+#     static_part1 = f"{channel}--{int(''.join(pos_path_parts[0].split('_')))}_Air150mbar_"
+#     static_part2 = f"{int(pos_path_parts[1].split('_')[1].split('k')[0])}kV--"
+
+#     # Prepare the data for multiprocessing, excluding files that already exist
+#     file_groups = []
+#     for file_number, group in df.groupby("file_number"):
+#         output_filename = f"{static_part1}{static_part2}{file_number}{fmt}"
+#         output_filepath = base_path / output_filename
+        
+#         if os.path.exists(output_filepath):
+#             print(f"File already exists: {output_filepath}. Skipping file creation.")
+#         else:
+#             # Only add to file_groups if the file doesn't exist
+#             file_groups.append((file_number, group, base_path, static_part1, static_part2, header_text))
+
+#     # Proceed with writing files only for those that don't exist
+#     if file_groups:
+#         try:
+#             with ProcessPoolExecutor() as executor:
+#                 executor.map(write_single_file, file_groups)
+#         except Exception as e:
+#             print(f"An error occurred during file writing: {e}")
+#             return
+
+#         add_leading_zeros(pos_path=pos_path, channel=channel, fmt=fmt)
+#         print(f"Files written for channel {channel} at {base_path}")
+#     else:
+#         print(f"No new files were created for channel {channel}.")
+
+
+# def write_files(df: pd.DataFrame, channel: str, pos_path: str, fmt: str = ".txt"):
+#     """
+#     Writes files based on the provided DataFrame and parameters.
+
+#     Parameters:
+#         df (pd.DataFrame): DataFrame containing the data to be written.
+#         channel (str): Channel name for the output files.
+#         pos_path (str): Path where the files will be saved.
+#         fmt (str): File format (default: ".txt").
+#     """
+#     header_text = "LECROYWR625Zi;61392;Waveform\nSegments;1;SegmentSize;2002\nSegment;TrigTime;TimeSinceSegment1\n#1date;0"
+
+#     # Ensure the output path exists
+
+#     pos_path_parts = pos_path.split('/')
+#     base_path = Path(input_folder) / Path(pos_path)
+#     static_part1 = f"{channel}--{int(''.join(pos_path_parts[0].split('_')))}_Air150mbar_"
+#     static_part2 = f"{int(pos_path_parts[1].split('_')[1].split('k')[0])}kV--"
+
+#     # Prepare the data for multiprocessing
+#     file_groups = [(file_number, group, base_path, static_part1, static_part2, header_text)
+#                    for file_number, group in df.groupby("file_number")]
+
+#     # Check for existing files before writing
+#     for file_number, group in df.groupby("file_number"):
+#         output_filename = f"{static_part1}{static_part2}{file_number}{fmt}"
+#         output_filepath = base_path / output_filename
+        
+#         if os.path.exists(output_filepath):
+#             print(f"File already exists: {output_filepath}. Skipping file creation.")
+#             continue
+
+#     try:
+#         with ProcessPoolExecutor() as executor:
+#             executor.map(write_single_file, file_groups)
+#     except Exception as e:
+#         print(f"An error occurred during file writing: {e}")
+#         return
+
+#     add_leading_zeros(pos_path=pos_path, channel=channel, fmt=fmt)
+#     print(f"Files written for channel {channel} at {base_path}")
 
 # def write_single_file(file_number_group, base_path, static_part1, static_part2, header_text):
 #     file_number, group = file_number_group
@@ -285,7 +405,7 @@ def write_input_for_ssc(
     path_to_input = input_folder / path
 
     with open(str(path_to_input), "w") as file:
-        file.write(str(Path(path_to_input).parent) + "/" "\n")
+        file.write(str(Path(path_to_input).parent) + "\\" "\n")
         file.write(path_to_data+ "\n")
         file.write(str(header) + "\n")
         file.write(str(n_elements) + "\n")
@@ -298,10 +418,10 @@ def compile_ssc(
     module: str = "ssc.f90",
     code: str = "stud_stat_calc.f90",
 ):
-    compile_command = f"gfortran {str(folder/Path(path_folder))}/{module} {str(folder/Path(path_folder))}/{code} -o {str(folder/Path(path_folder))}/stud_stat_calc"
+    compile_command = f"gfortran {str(folder/Path(path_folder))}\\{module} {str(folder/Path(path_folder))}\\{code} -o {str(folder/Path(path_folder))}\\stud_stat_calc"
     subprocess.run(compile_command, shell=True, check=True)
     # Execute the compiled Fortran program
-    execute_command = f"{str(folder/Path(path_folder))}/stud_stat_calc"
+    execute_command = f"{str(folder/Path(path_folder))}\\stud_stat_calc"
 
     try:
         result = subprocess.run(
