@@ -64,12 +64,12 @@ if __name__ == "__main__":
     for_compiler.compile_shg("FORTRAN")
 
     for_compiler.write_shg_for_ssc(
-        path_to_write=f"{date}/e_fish_signal.dat",
+        path_to_write=f"{date}/e_fish_signal_{pos_volt}.dat",
         path_to_read=f"{date}/output_{pos_volt}.dat",
     )
     n_elements = len(
         pd.read_csv(
-            str(Path(__file__).parent.parent.parent / f"data/{date}/e_fish_signal.dat"),
+            str(Path(__file__).parent.parent.parent / f"data/{date}/e_fish_signal_{pos_volt}.dat"),
             delimiter=";",
         )
     )
