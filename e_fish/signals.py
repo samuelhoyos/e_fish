@@ -9,13 +9,9 @@ def shift_laser_signal(df: pd.DataFrame, df_discharge: pd.DataFrame) -> pd.DataF
     Parameters:
     -----------
     df : pd.DataFrame
-        DataFrame containing the laser signal data with the following columns:
-        - `time`: Time of the laser signal.
-        - `file_number`: Identifier for the measurement file.
+        DataFrame containing the laser signal data.
     df_discharge : pd.DataFrame
-        DataFrame containing the discharge times with the following column:
-        - `time`: Time of the discharge corresponding to each `file_number`.
-
+        DataFrame containing the discharge.
     """
 
     df.loc[:, "time"] = (

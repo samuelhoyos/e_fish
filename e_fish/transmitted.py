@@ -29,27 +29,27 @@ def compute_pulse(
     Parameters:
     -----------
     df : pd.DataFrame
-        DataFrame containing incident pulse data with columns: `file_number`, `time`, and `avg_amplitude`.
+        DataFrame containing incident pulse data with columns: 'file_number', 'time', and 'avg_amplitude'.
     df_shifted : pd.DataFrame
-        DataFrame containing shifted reflected pulse data with columns: `file_number`, `time`, and `amplitude`.
+        DataFrame containing shifted reflected pulse data with columns: 'file_number', 'time', and 'amplitude'.
     df_time : pd.DataFrame
-        DataFrame containing the time shift for each `file_number` with a column `delta_t`.
+        DataFrame containing the time shift for each 'file_number' with a column 'delta_t'.
 
     Returns:
     --------
     pd.DataFrame
         A DataFrame containing the transmitted pulse data with the following columns:
-        - `file_number`.
-        - `time`: The corrected time for each data point.
-        - `incident`: The amplitude of the incident pulse.
-        - `reflected`: The amplitude of the reflected pulse.
-        - `transmitted`: The calculated transmitted pulse.
+        - 'file_number'.
+        - 'time': The corrected time for each data point.
+        - 'incident': The amplitude of the incident pulse.
+        - 'reflected': The amplitude of the reflected pulse.
+        - 'transmitted': The calculated transmitted pulse.
 
     Notes:
     ------
     - The transmitted pulse is computed as the negative difference between the incident and reflected pulses.
-    - The function aligns and merges the incident and reflected pulses using `pd.merge_asof()`, which finds the closest matching times between the two DataFrames.
-    - The time is corrected by adding the time shift (`delta_t`) from the `df_time` DataFrame.
+    - The function aligns and merges the incident and reflected pulses using 'pd.merge_asof()', which finds the closest matching times between the two DataFrames.
+    - The time is corrected by adding the time shift ('delta_t') from the 'df_time' DataFrame.
     """
 
     # Group by file number
@@ -110,26 +110,26 @@ def compute_pulse_lap(df_shifted: pd.DataFrame, df_time: pd.DataFrame) -> pd.Dat
 # @memory_complete.cache
 def complete_signal(df: pd.DataFrame, n_elements: int = 2002) -> pd.DataFrame:
     """
-    Complete the signal data by adding rows to each `file_number` group
+    Complete the signal data by adding rows to each 'file_number' group
     until each group contains the specified number of elements.
 
     Parameters
     ----------
     df : pd.DataFrame
-        Input DataFrame containing columns `file_number`, `time`, and `transmitted`.
+        Input DataFrame containing columns 'file_number', 'time', and 'transmitted'.
 
     n_elements : int, optional
-        The target number of rows for each `file_number` group. Default is 2002.
+        The target number of rows for each 'file_number' group. Default is 2002.
 
     Returns
     -------
     pd.DataFrame
-        DataFrame with additional rows added to each `file_number` group to
-        meet the required number of elements, sorted by `file_number` and `time`.
+        DataFrame with additional rows added to each 'file_number' group to
+        meet the required number of elements, sorted by 'file_number' and 'time'.
 
     Notes
     -----
-    - The added rows contain `transmitted` values set to zero
+    - The added rows contain 'transmitted' values set to zero
     """
     # Count occurrences of each file_number
     grouped = df.groupby("file_number").size()
@@ -164,7 +164,7 @@ def get_discharge_times(df: pd.DataFrame, trigger: float) -> pd.DataFrame:
     Parameters
     ----------
     df : pd.DataFrame
-        Input DataFrame containing columns `file_number`, `time`, and `transmitted`.
+        Input DataFrame containing columns 'file_number', 'time', and 'transmitted'.
 
     trigger : float
         The trigger level used to determine the discharge event.
@@ -172,10 +172,10 @@ def get_discharge_times(df: pd.DataFrame, trigger: float) -> pd.DataFrame:
     Returns
     -------
     pd.DataFrame
-        DataFrame containing the first discharge time for each `file_number`, with columns:
-        - `file_number`: Identifier for the signal group.
-        - `time`: Time at which the discharge event occurred.
-        - `transmitted`: Transmitted signal value at the discharge time.
+        DataFrame containing the first discharge time for each 'file_number', with columns:
+        - 'file_number': Identifier for the signal group.
+        - 'time': Time at which the discharge event occurred.
+        - 'transmitted': Transmitted signal value at the discharge time.
 
     Notes
     -----
@@ -183,10 +183,10 @@ def get_discharge_times(df: pd.DataFrame, trigger: float) -> pd.DataFrame:
       * The threshold is greater than or equal to 0.05.
       * The time is less than or equal to 0.95e-7 seconds.
     - The closest transmitted signal to the trigger level is selected as the discharge event.
-    - Only one discharge event per `file_number` is returned.
+    - Only one discharge event per 'file_number' is returned.
     """
 
-    # Compute the threshold for each `file_number` as the mean transmitted signal
+    # Compute the threshold for each 'file_number' as the mean transmitted signal
     df["threshold"] = (
         (df.groupby("file_number").transmitted.mean().to_frame("threshold"))
         .threshold.repeat(df.file_number.value_counts().sort_index())
@@ -208,18 +208,18 @@ def get_discharge_times(df: pd.DataFrame, trigger: float) -> pd.DataFrame:
     # Drop rows that do not meet the conditions
     df = df.dropna()
 
-    # Group by `file_number` and select the minimum candidate value (closest to the trigger)
+    # Group by 'file_number' and select the minimum candidate value (closest to the trigger)
     df_grouped = (
         df.groupby("file_number")["dis_candidates"].min().to_frame().reset_index()
     )
 
     # Merge the selected minimum candidate back with the original DataFrame to retrieve
-    # the corresponding `time` and `transmitted` values
+    # the corresponding 'time' and 'transmitted' values
     df = df_grouped.merge(df, on=["file_number", "dis_candidates"], how="left")[
         ["file_number", "time", "transmitted"]
     ]
 
-    # Drop duplicate rows, retaining only the first discharge event for each `file_number`
+    # Drop duplicate rows, retaining only the first discharge event for each 'file_number'
     df = df.drop_duplicates(subset="file_number")
 
     return df

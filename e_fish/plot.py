@@ -53,13 +53,13 @@ def e_fish(df_signal: pd.DataFrame, df_stat: pd.DataFrame, position: int, voltag
     -----------
     df_signal : pd.DataFrame
         DataFrame containing the E-FISH signal data with the following columns:
-        - `timens`: Time in nanoseconds.
-        - `shg_single`: Measured E-FISH signal in arbitrary units (a.u.).
+        - 'timens': Time in nanoseconds.
+        - 'shg_single': Measured E-FISH signal in arbitrary units (a.u.).
     df_stat : pd.DataFrame
         DataFrame containing statistical data with the following columns:
-        - `binns`: Time bins in nanoseconds.
-        - `mean`: Mean E-FISH signal for each bin.
-        - `error`: Standard error for each bin.
+        - 'binns': Time bins in nanoseconds.
+        - 'mean': Mean E-FISH signal for each bin.
+        - 'error': Standard error for each bin.
     position : int
         The point at which measurements where performed in the experimental setup.
     voltage : int
@@ -73,7 +73,7 @@ def e_fish(df_signal: pd.DataFrame, df_stat: pd.DataFrame, position: int, voltag
     Side Effects:
     -------------
     - Displays a plot of the E-FISH signal as a function of time.
-    - The plot includes data points (`df_signal`) and the average signal with error bars (`df_stat`).
+    - The plot includes data points ('df_signal') and the average signal with error bars ('df_stat').
 
     Notes:
     ------

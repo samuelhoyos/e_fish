@@ -16,23 +16,23 @@ voltage = data_path.split("\\")[1].split("_")[1].split("k")[0]
 joined_date = "".join(date.split("_"))
 
 if __name__ == "__main__":
+
     df_1 = load.get_df(channel="C1", folder=Path(data_path))
     df_2 = load.get_df(channel="C2", folder=Path(data_path))
     df_3 = load.get_df(channel="C3", folder=Path(data_path))
-    # # # df_td = time.get_td_df(df_1)
-    # # print("checkpoint")
+
     df_1 = load.avg_amplitude(df=df_1, window_size=10)
+
     df_time = time.calculate_df_time(df_1, trigger_up, trigger_down)
-    print("checkpoint")
+
     df_shifted = time.shift_reflected_pulse(df_1, df_time)
     df_transmitted = transmitted.compute_pulse(df_1, df_shifted, df_time)
-    print("checkpoint")
+
 
     df_discharge = transmitted.get_discharge_times(df_transmitted, trigger_up)
     df_2 = df_2[df_2.file_number.isin(df_discharge.file_number)]
 
-    # df_2=signals.shift_laser_signal(df_2, df_discharge)
-    # print("checkpoint")
+
     df_1["amplitude"] = -df_1["avg_amplitude"]
     df_3["amplitude"] = -df_3["amplitude"]
     df_3_max = signals.find_pmt_max(df_3)
@@ -67,7 +67,7 @@ if __name__ == "__main__":
         path_to_write=f"{date}/e_fish_signal_{pos_volt}.dat",
         path_to_read=f"{date}/output_{pos_volt}.dat",
     )
-    n_elements = len(
+    n_files = len(
         pd.read_csv(
             str(Path(__file__).parent.parent.parent / f"data/{date}/e_fish_signal_{pos_volt}.dat"),
             delimiter=";",
@@ -75,7 +75,7 @@ if __name__ == "__main__":
     )
     for_compiler.write_input_for_ssc(
         path=f"{date}/input_{pos_volt}_SSC.dat",
-        n_elements=n_elements,
+        n_files=n_files,
         path_to_data=f"e_fish_signal_{pos_volt}.dat",
         bin_width=0.2,
     )

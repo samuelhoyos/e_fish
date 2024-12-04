@@ -71,7 +71,7 @@ def create_dfs(file_list: tuple) -> list:
     Parameters:
     -----------
     file_list : tuple
-        A tuple of file paths to be read, excluding any files containing "BG" in their names.
+        A tuple of file paths to be read, excluding any files containing "BG" in their names to exclude background measurement.
 
     Returns:
     --------
@@ -80,12 +80,12 @@ def create_dfs(file_list: tuple) -> list:
 
     Side Effects:
     -------------
-    - Displays a progress bar using `tqdm` while reading files in parallel.
+    - Displays a progress bar using 'tqdm' while reading files in parallel.
 
     Notes:
     ------
-    - Uses a `ThreadPoolExecutor` to read files concurrently, improving performance when handling large datasets.
-    - Relies on the `reader` function to read individual files.
+    - Uses a 'ThreadPoolExecutor' to read files concurrently, improving performance when handling large datasets.
+    - Relies on the 'reader' function to read individual files.
     """
 
     file_list = [i for i in file_list if "BG" not in i]
@@ -122,13 +122,13 @@ def get_df(channel: str, folder: str) -> pd.DataFrame:
 
     Side Effects:
     -------------
-    - Reads all files matching the `channel` identifier in the specified folder.
+    - Reads all files matching the 'channel' identifier in the specified folder.
     - Concatenates the DataFrames from all files and resets the index.
 
     Notes:
     ------
-    - The folder is assumed to be located in the `data` directory relative to the script's location.
-    - Uses the `create_dfs` function to read and process the files in parallel.
+    - The folder is assumed to be located in the 'data' directory relative to the script's location.
+    - Uses the 'create_dfs' function to read and process the files in parallel.
     """
 
     folder = Path(__file__).parent.parent.parent / Path("data") / folder
@@ -154,24 +154,24 @@ def avg_amplitude(df: pd.DataFrame, window_size: int):
     Parameters:
     -----------
     df : pd.DataFrame
-        The input DataFrame containing the columns `file_number` and `amplitude`.
+        The input DataFrame containing the columns 'file_number' and 'amplitude'.
     window_size : int
         The size of the rolling window used to compute the average amplitude.
 
     Returns:
     --------
     pd.DataFrame
-        The input DataFrame with an additional column `avg_amplitude`, containing the rolling average values.
+        The input DataFrame with an additional column 'avg_amplitude', containing the rolling average values.
 
     Side Effects:
     -------------
-    - Performs a groupby operation on the `file_number` column to calculate the rolling average separately for each file.
-    - Fills missing values in the rolling average using backward fill (`bfill`).
+    - Performs a groupby operation on the 'file_number' column to calculate the rolling average separately for each file.
+    - Fills missing values in the rolling average using backward fill ('bfill').
 
     Notes:
     ------
     - The rolling average is computed with a minimum of 3 data points to avoid incomplete windows.
-    - The function resets the `file_number` index before adding the new column to the original DataFrame.
+    - The function resets the 'file_number' index before adding the new column to the original DataFrame.
     """
 
     df_avg = (

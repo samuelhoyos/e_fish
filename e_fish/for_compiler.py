@@ -41,39 +41,39 @@ def write_input(
     Parameters:
     -----------
     first_osc : int
-        The number corresponding to the first oscilloscope data point.
+        The number corresponding to the first oscillogram.
     last_osc : int
-        The number corresponding to the last oscilloscope data point.
+        The number corresponding to the last oscillogram.
     delta_t : float
-        The time step for the simulation.
+        Full width at half maximum.
     t_diff : float
-        The time difference between the first and last oscilloscope data points.
+        The time difference between PMT and PD signals.
     input_path : str
         The relative path where the configuration file will be saved.
     pos_path : str
         The relative path to the folder containing the data for the point under consideration.
     bcs1_gen_name : str
-        The name of the first generator for boundary conditions.
+        Base name for the first channel.
     bcs2_gen_name : str
-        The name of the second generator for boundary conditions.
+        Base name for the files with the transmitted pulses.
     pd_gen_name : str
-        The name of the generator for plasma density.
+        Base name for the files to save PD signals.
     pmt_gen_name : str
-        The name of the generator for PMT (photomultiplier tube) data.
+        Base name for the files to save PMT signals.
     fmt : str, optional
-        The file extension for the output file, default is ".txt".
+        The file extension, default is ".txt".
     skip : int, optional
-        The number of entries to skip between saved data points, default is 5.
+        Rows to skip, default is 5.
     n_elements : int, optional
-        The total number of data points (elements) to be included, default is 2002.
+        The total number of data points per oscillogram, default is 2002.
     t_bgd : float, optional
         The background time, default is 0.
     trigger : float, optional
-        The trigger time for the oscilloscope, default is 0.15.
+        The trigger value for the oscilloscope, default is 0.15.
 
     Side Effects:
     -------------
-    - Creates the output file specified by `input_path`.
+    - Creates the output file specified by 'input_path'.
     """
     with open(str(input_folder / Path(input_path)), "w") as file:
         file.write(str(input_folder / Path(pos_path)) + "\\" + "\n")
@@ -109,7 +109,7 @@ def compile_shg(path_folder: str):
 
     Side Effects:
     -------------
-    - Compiles the FORTRAN code using `gfortran`.
+    - Compiles the FORTRAN code using 'gfortran'.
     - Executes the compiled program.
     - Prints the standard output or error message if the execution fails.
 
@@ -162,7 +162,7 @@ def add_leading_zeros(channel: str, pos_path: str, total_length=5, fmt: str = ".
 
     Notes:
     ------
-    The directory path is derived from `input_folder` combined with `pos_path`.
+    The directory path is derived from 'input_folder' combined with 'pos_path'.
 
     Exceptions:
     -----------
@@ -210,16 +210,15 @@ def write_single_file(file_info):
     -----------
     file_info : tuple
         A tuple containing the following elements:
-        - file_number : int
-            The number used to identify the file in its filename.
+        - file_number : int.
         - group : pd.DataFrame
             A DataFrame containing the data to be written to the file, expected to have "time" and "amplitude" columns.
         - base_path : Path
             The base path where the file will be saved.
         - static_part1 : str
-            A static string part of the filename, typically containing the channel and other fixed information.
+            A static string part of the filename, typically containing the channel.
         - static_part2 : str
-            Another static string part of the filename, typically containing the voltage or other metadata.
+            Another static string part of the filename, typically containing the voltage.
         - header_text : str
             The header text that will be written at the beginning of the file.
 
@@ -231,7 +230,7 @@ def write_single_file(file_info):
 
     Notes:
     ------
-    - If the `group` DataFrame is empty, a warning is printed and no data is written to the file.
+    - If the 'group' DataFrame is empty, a warning is printed and no data is written to the file.
     """
 
     file_number, group, base_path, static_part1, static_part2, header_text = file_info
@@ -245,7 +244,7 @@ def write_single_file(file_info):
     if group.empty:
         print(f"Warning: Data for file {file_path} is empty.")
     else:
-        group[["time", "amplitude"]].to_csv(file_path, sep=";", index=False, mode="a")
+        group[["time", "amplitude"]].to_csv(file_path, sep=";", index=False, mode="a") #append mode
 
 
 def write_files(df: pd.DataFrame, channel: str, pos_path: str, fmt: str = ".txt"):
@@ -257,7 +256,7 @@ def write_files(df: pd.DataFrame, channel: str, pos_path: str, fmt: str = ".txt"
     df : pd.DataFrame
         A DataFrame containing the data to be written to the files. The data is grouped by the "file_number" column.
     channel : str
-        The channel identifier used in the filenames.
+        The channel identifier.
     pos_path : str
         The relative path where the files will be saved.
     fmt : str, optional
@@ -267,13 +266,13 @@ def write_files(df: pd.DataFrame, channel: str, pos_path: str, fmt: str = ".txt"
     -------------
     - Creates the necessary directories for saving the files.
     - Writes data for each file into separate files using multiprocessing.
-    - Appends the `time` and `amplitude` columns from the DataFrame to the output files.
-    - Calls the `add_leading_zeros` function to standardize the filenames.
+    - Appends the 'time' and 'amplitude' columns from the DataFrame to the output files.
+    - Calls the 'add_leading_zeros' function to standardize the filenames.
 
     Notes:
     ------
     - The header text mimics the format generated by an oscilloscope.
-    - The file paths are constructed based on the `channel`, `pos_path`, and `file_number`.
+    - The file paths are constructed based on the 'channel', 'pos_path', and 'file_number'.
     """
 
     # Mimics the header generated by the oscilloscope
@@ -338,7 +337,7 @@ def write_shg_for_ssc(path_to_read: str, path_to_write: str):
 
 def write_input_for_ssc(
     path: str,
-    n_elements: int,
+    n_files: int,
     header: int = 1,
     bin_width: float = 0.2,
     path_to_data: str = "e_fish_signal.dat",
@@ -350,23 +349,23 @@ def write_input_for_ssc(
     -----------
     path : str
         The relative path where the input file will be saved.
-    n_elements : int
-        The number of elements to be included in the input file.
+    n_files : int
+        The number of files to be included in the input file.
     header : int, optional
-        The header value to be written to the input file, default is 1.
+        Specifies number of lines constituting the header, default is 1.
     bin_width : float, optional
-        The bin width to be written to the input file, default is 0.2.
+        The bin width to be written to the input file, default is 0.2 ns.
     path_to_data : str, optional
         The relative path to the data file, default is "e_fish_signal.dat".
 
     Side Effects:
     -------------
-    - Creates and writes an input file at the specified `path` with the necessary parameters for SSC.
+    - Creates and writes an input file at the specified 'path' with the necessary parameters for SSC.
     - Writes the directory path, data file path, header, number of elements, and bin width to the file.
 
     Notes:
     ------
-    - The function assumes the presence of an `input_folder` variable that defines the base directory for saving the input file.
+    - The function assumes the presence of an 'input_folder' variable that defines the base directory for saving the input file.
     """
     path_to_input = input_folder / path
 
@@ -374,7 +373,7 @@ def write_input_for_ssc(
         file.write(str(Path(path_to_input).parent) + "\\" "\n")
         file.write(path_to_data + "\n")
         file.write(str(header) + "\n")
-        file.write(str(n_elements) + "\n")
+        file.write(str(n_files) + "\n")
         file.write(str(bin_width) + "\n")
     return print("Input for SSC ready")
 
@@ -398,13 +397,13 @@ def compile_ssc(
 
     Side Effects:
     -------------
-    - Compiles the Fortran source files (`module` and `code`) using the `gfortran` compiler.
+    - Compiles the Fortran source files ('module' and 'code') using the 'gfortran' compiler.
     - Executes the compiled Fortran program and captures its output.
     - Prints the standard output or error messages from the execution.
 
     Notes:
     ------
-    - The function assumes that the `folder` variable points to the directory containing the Fortran files.
+    - The function assumes that the 'folder' variable points to the directory containing the Fortran files.
     - Any errors during the compilation or execution will be printed along with the error details.
     """
 
