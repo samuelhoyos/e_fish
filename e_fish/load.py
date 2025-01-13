@@ -187,7 +187,7 @@ def avg_amplitude(df: pd.DataFrame, window_size: int):
 
 
 def bkgd(channel: str, data_path: str):
-    path = Path(__file__).parent.parent / Path("data") / Path(data_path)
+    path = Path(__file__).parent.parent.parent / Path("data") / Path(data_path)
     filename = [
         str(path / i)
         for i in os.listdir(path)
@@ -208,8 +208,8 @@ def inverted_bkgd(
     df_discharge_bkgd: pd.DataFrame,
 ):
 
-    path = Path(__file__).parent.parent / Path("data") / Path(data_path) / filename
-    path_to_write = f"{Path(__file__).parent.parent/Path('data')/Path(data_path)}/{filename.split('.')[0]}_inverted.{filename.split('.')[1]}"
+    path = Path(__file__).parent.parent.parent / Path("data") / Path(data_path) / filename
+    path_to_write = f"{Path(__file__).parent.parent.parent/Path('data')/Path(data_path)}/{filename.split('.')[0]}_inverted.{filename.split('.')[1]}"
     df = pd.read_csv(f"{str(path)}", delimiter=";", skiprows=4)
     df.columns = ["time", "amplitude"]
     df["amplitude"] = -df["amplitude"]

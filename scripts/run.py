@@ -17,19 +17,31 @@ joined_date = "".join(date.split("_"))
 
 if __name__ == "__main__":
 
-    df_1 = load.get_df(channel="C1", folder=Path(data_path))
-    df_2 = load.get_df(channel="C2", folder=Path(data_path))
-    df_3 = load.get_df(channel="C3", folder=Path(data_path))
+    df_1 = load.get_df(channel="C1", folder=Path(data_path)) #BCS: back current shunt
+    df1_bkgd=load.bkgd(channel="C1", data_path=data_path)
+
+    df_2 = load.get_df(channel="C2", folder=Path(data_path)) #PD: photodiode
+    df2_bkgd=load.bkgd(channel="C2", data_path=data_path)
+
+    df_3 = load.get_df(channel="C3", folder=Path(data_path)) #PMT: photomultiplier
+    df3_bkgd=load.bkgd(channel="C3", data_path=data_path)
 
     df_1 = load.avg_amplitude(df=df_1, window_size=10)
+    df1_bkgd=load.avg_amplitude(df=df1_bkgd, window_size=10)
 
     df_time = time.calculate_df_time(df_1, trigger_up, trigger_down)
+    df_time_bkgd = time.calculate_df_time(df1_bkgd, trigger_up, trigger_down)
 
     df_shifted = time.shift_reflected_pulse(df_1, df_time)
+    df_shifted_bkgd = time.shift_reflected_pulse(df1_bkgd, df_time_bkgd)
+
     df_transmitted = transmitted.compute_pulse(df_1, df_shifted, df_time)
+    df_transmitted_bkgd = transmitted.compute_pulse(df1_bkgd, df_shifted_bkgd, df_time_bkgd)
 
 
     df_discharge = transmitted.get_discharge_times(df_transmitted, trigger_up)
+    df_discharge_bkgd = transmitted.get_discharge_times(df_transmitted_bkgd, trigger_up)
+
     df_2 = df_2[df_2.file_number.isin(df_discharge.file_number)]
 
 
@@ -38,6 +50,9 @@ if __name__ == "__main__":
     df_3_max = signals.find_pmt_max(df_3)
     df_transmitted = transmitted.complete_signal(df_transmitted, n_elements=n_elements)
     df_transmitted.rename(columns={"transmitted": "amplitude"}, inplace=True)
+
+    df_transmitted_bkgd = transmitted.complete_signal(df_transmitted_bkgd, n_elements=n_elements)
+    df_transmitted_bkgd.rename(columns={"transmitted": "amplitude"}, inplace=True)
 
     fwhm = time.calculate_int_interval(df_2)
     t_diff = time.calculate_pd_pmt_diff(df_3_max, df_2)
@@ -60,23 +75,24 @@ if __name__ == "__main__":
         pd_gen_name=f"C2--{joined_date}_Air150mbar_{voltage}kV--",
         pmt_gen_name=f"C33--{joined_date}_Air150mbar_{voltage}kV--",
     )
-
+    load.inverted_bkgd(filename=f"C3--{joined_date}_Air150mbar_{voltage}kV_BG1.txt", data_path=data_path,df_discharge=df_discharge, df_discharge_bkgd=df_discharge_bkgd)
     for_compiler.compile_shg("FORTRAN")
 
     for_compiler.write_shg_for_ssc(
-        path_to_write=f"{date}/e_fish_signal_{pos_volt}.dat",
-        path_to_read=f"{date}/output_{pos_volt}.dat",
+        path_to_write=f"{date}/e_fish_signal_{pos_volt}_bkgd.dat",
+        path_to_read=f"{date}/output_{pos_volt}_bkgd.dat",
     )
     n_files = len(
         pd.read_csv(
-            str(Path(__file__).parent.parent.parent / f"data/{date}/e_fish_signal_{pos_volt}.dat"),
+            str(Path(__file__).parent.parent.parent / f"data/{date}/e_fish_signal_{pos_volt}_bkgd.dat"),
             delimiter=";",
         )
     )
     for_compiler.write_input_for_ssc(
-        path=f"{date}/input_{pos_volt}_SSC.dat",
+        path=f"{date}/input_{pos_volt}_bkgd_SSC.dat",
         n_files=n_files,
-        path_to_data=f"e_fish_signal_{pos_volt}.dat",
+        path_to_data=f"e_fish_signal_{pos_volt}_bkgd.dat",
         bin_width=0.2,
     )
     for_compiler.compile_ssc()
+    
